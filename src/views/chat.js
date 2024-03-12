@@ -5,23 +5,8 @@ let userId = localStorage.getItem("userId");
 const feedback = document.getElementById("feedback");
 const message = document.getElementById("messageinput");
 let pollData = [];
-
 var notificationsEnabled = true;
 const bellIcon = document.getElementById("notificationBell");
-
-bellIcon.addEventListener("click", async (e) => {
-  e.preventDefault();
-  if (notificationsEnabled) {
-    bellIcon.classList.remove("fa-regular", "fa-bell");
-    bellIcon.classList.add("fa-regular", "fa-bell-slash");
-    alert("Notifications Enabled");
-  } else {
-    bellIcon.classList.remove("fa-regular", "fa-bell-slash");
-    bellIcon.classList.add("fa-regular", "fa-bell");
-    alert("Notifications Disabled");
-  }
-  notificationsEnabled = !notificationsEnabled;
-});
 
 //user-joined to server and receive broadcast for the same from server
 socket.on("connect", () => {
@@ -64,37 +49,6 @@ socket.on("new-notification", (data) => {
     }, 5000);
   }
 });
-
-async function vote(index) {
-  socket.emit("vote", index);
-  //add poll in database
-  const id = userId;
-  const poll = {index: index};
-  console.log(poll);
-  try {
-    const response = await axios.post("http://localhost:3000/addPoll", poll, {
-      headers: {Authorization: usertoken},
-    });
-  } catch (err) {
-    console.log("unable to send", err);
-  }
-}
-
-async function fetchPoll() {
-  const poll = {};
-  try {
-    const response = await axios.get("http://localhost:3000/fetchPoll", {
-      headers: {Authorization: usertoken},
-    });
-    response.data.forEach((value, index) => {
-      pollData.push(response.data[index].totalvotes);
-    });
-    console.log(pollData);
-    polling();
-  } catch (err) {
-    console.log("unable to retrieve polls", err);
-  }
-}
 
 window.addEventListener("DOMContentLoaded", function () {
   getAllMessagesFromDB();
@@ -173,9 +127,8 @@ async function getAllMessagesFromDB() {
       const isUser = name === username;
       displayMessage(isUser ? "you" : name, message);
     }
-    localStorage.setItem("chatMessages", JSON.stringify(messages));
   } catch (err) {
-    console.log("Unable to get message from local storage", err);
+    console.log("Error getting messages", err);
   }
 }
 
@@ -193,18 +146,19 @@ async function sendMessageToServer() {
     socket.emit("send-notification", username);
 
     const sendMessageMutation = `
-    mutation SendMessage($message: String!, $sender: String!) {
-        sendMessage(message: $message, sender: $sender) {
-          
+      mutation Send($message: String!, $sender: String!) {
+        send(message: $message, sender: $sender) {
+          message
+          sender
         }
       }
         `;
 
     const obj = {
-      Query: sendMessageMutation,
+      mutation: sendMessageMutation,
       variables: {message: messageText, sender: username},
     };
-    console.log(">>>>>>>>>>>>>>>>>>>>>>", obj.variables);
+    console.log(obj.variables);
     const response = await axios.post("http://localhost:3000/graphql", obj);
     console.log("response", response);
     messageinput.value = "";
@@ -276,16 +230,7 @@ function displayMessage(sender, message) {
   messages.scrollTop = messages.scrollHeight;
 }
 
-async function deleteMessage(sender, message) {
-  try {
-    await axios.post("http://localhost:3000/deleteMessage", message, {
-      headers: {Authorization: usertoken},
-    });
-  } catch (err) {
-    console.log(err);
-  }
-}
-
+// For all notification services functions
 const checkPermission = () => {
   if (!("serviceWorker" in navigator)) {
     throw new Error("No support for service worker");
@@ -318,7 +263,20 @@ const requestPermission = async () => {
 const main = async (data) => {
   checkPermission();
   const reg = await registerSW();
-  //   console.log(reg);
   reg.showNotification(`${data} sent a new message`);
   requestPermission(); //need to call only once
 };
+
+bellIcon.addEventListener("click", async (e) => {
+  e.preventDefault();
+  if (notificationsEnabled) {
+    bellIcon.classList.remove("fa-regular", "fa-bell");
+    bellIcon.classList.add("fa-regular", "fa-bell-slash");
+    alert("Notifications Enabled");
+  } else {
+    bellIcon.classList.remove("fa-regular", "fa-bell-slash");
+    bellIcon.classList.add("fa-regular", "fa-bell");
+    alert("Notifications Disabled");
+  }
+  notificationsEnabled = !notificationsEnabled;
+});

@@ -5,7 +5,7 @@ const messageSchema = new mongoose.Schema(
     message: String,
     sender: String,
   },
-  {timestamps: false} //disables createdat and updatedat
+  {timestamps: false}
 );
 
 export const Messagemodel = mongoose.model("Message", messageSchema);

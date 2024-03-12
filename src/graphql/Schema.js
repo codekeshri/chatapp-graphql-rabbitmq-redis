@@ -1,10 +1,10 @@
-import {Usermodel} from "../models/user.js";
+import {Usermodel} from "../models/User.js";
 import {Messagemodel} from "../models/Message.js";
 import {sendEmail} from "../services/email.js";
 import {gql} from "apollo-server-express";
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
-import client from "../utils/redis-client.js";
+import client from "../utils/redis.js";
 
 const typeDefs = gql`
   type User {
@@ -27,9 +27,7 @@ const typeDefs = gql`
   type Query {
     getUser(id: ID!): User
     getAllUsers: [User]
-    getMessage(id: ID!): Message
     getAllMessages: [Message]
-    sendMessage: Boolean
     welcomeEmail: Response
   }
 
@@ -41,7 +39,7 @@ const typeDefs = gql`
   type Mutation {
     signup(name: String!, email: String!, password: String!): User
     login(email: String!, password: String!): AuthPayload
-    sendMessage(message: String!, sender: String!): Boolean
+    send(message: String!, sender: String!): Message
   }
 `;
 
@@ -63,14 +61,17 @@ const resolvers = {
       }
     },
 
-    getAllMessages: async (parent, {id}) => {
+    getAllMessages: async (parent, args, context, info) => {
       try {
-        const cache = await client.get("messages");
-        if (cache) return res.json(JSON.parse(cache));
+        const cache_data = await client.get("messages");
+        if (cache_data !== null) {
+          const data = JSON.parse(cache_data);
+          return data;
+        }
 
         const messagesArray = await Messagemodel.find();
         await client.set("messages", JSON.stringify(messagesArray));
-        await client.expire("messages", 300);
+        await client.expire("messages", 30);
 
         return messagesArray;
       } catch (err) {
@@ -134,12 +135,12 @@ const resolvers = {
       }
     },
 
-    sendMessage: async (parent, args, context, info) => {
+    send: async (parent, args, context, info) => {
       console.log("req from client", args);
       try {
         const {message, sender} = args;
         const newMessage = await Messagemodel.create({message, sender});
-        return newMessage ? true : false;
+        return newMessage;
       } catch (err) {
         console.log(err);
         throw err;

@@ -6,15 +6,12 @@ const app = express();
 import {ApolloServer} from "@apollo/server";
 import {expressMiddleware} from "@apollo/server/express4";
 import {connectToMongoDB} from "./utils/mongoose.js";
-import {typeDefs, resolvers} from "./schema/userSchema.js";
+import {typeDefs, resolvers} from "./graphql/Schema.js";
 import {fileURLToPath} from "url";
 import path from "path";
 import {createServer} from "http";
 import {Server} from "socket.io";
 import {connectQueue} from "./utils/rabbitmq.js";
-import {redis} from "./utils/redis.js";
-import client from "./utils/redis-client.js";
-import axios from "axios";
 
 const server = createServer(app);
 const io = new Server(server);
@@ -38,7 +35,7 @@ async function main() {
 
   connectToMongoDB()
     .then(async () => {
-      console.log("\nMongodb connected");
+      console.log("Mongodb connected");
       server.listen(
         port,
         console.log(
@@ -90,5 +87,3 @@ io.on("connection", (socket) => {
     io.emit("new-notification", message);
   });
 });
-
-redis();
