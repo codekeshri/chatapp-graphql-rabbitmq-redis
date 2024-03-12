@@ -4,6 +4,7 @@ import {sendEmail} from "../services/email.js";
 import {gql} from "apollo-server-express";
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
+import client from "../utils/redis-client.js";
 
 const typeDefs = gql`
   type User {
@@ -64,7 +65,13 @@ const resolvers = {
 
     getAllMessages: async (parent, {id}) => {
       try {
+        const cache = await client.get("messages");
+        if (cache) return res.json(JSON.parse(cache));
+
         const messagesArray = await Messagemodel.find();
+        await client.set("messages", JSON.stringify(messagesArray));
+        await client.expire("messages", 300);
+
         return messagesArray;
       } catch (err) {
         console.log(err);
@@ -98,6 +105,7 @@ const resolvers = {
           email,
           password: hpassword,
         });
+        await sendEmail(email);
         return newUser;
       } catch (err) {
         console.log(err);

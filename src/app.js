@@ -12,6 +12,9 @@ import path from "path";
 import {createServer} from "http";
 import {Server} from "socket.io";
 import {connectQueue} from "./utils/rabbitmq.js";
+import {redis} from "./utils/redis.js";
+import client from "./utils/redis-client.js";
+import axios from "axios";
 
 const server = createServer(app);
 const io = new Server(server);
@@ -29,7 +32,7 @@ async function main() {
 
   app.use("/graphql", expressMiddleware(gqlServer));
 
-  app.get("/", (req, res) => {
+  app.get("/", async (req, res) => {
     res.sendFile(path.join(__dirname, "../src/views/index.html"));
   });
 
@@ -87,3 +90,5 @@ io.on("connection", (socket) => {
     io.emit("new-notification", message);
   });
 });
+
+redis();

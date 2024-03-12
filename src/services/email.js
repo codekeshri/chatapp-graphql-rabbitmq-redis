@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import amqplib from "amqplib";
 
-export async function sendEmail() {
+export async function sendEmail(email) {
   try {
     await connectQueue();
     const transporter = nodemailer.createTransport({
@@ -16,7 +16,7 @@ export async function sendEmail() {
 
     const mailOptions = {
       from: process.env.GMAIL_EMAIL,
-      to: "arvidce@gmail.com",
+      to: email,
       subject: "Welcome Email",
       text: "Welcome to Codekeshri Platform",
     };
