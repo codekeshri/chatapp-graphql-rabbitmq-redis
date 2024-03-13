@@ -5,10 +5,7 @@ export async function connectQueue() {
     const connection = await amqplib.connect("amqp://localhost");
     const channel = await connection.createChannel();
     await channel.assertQueue("welcome-email");
-
-    setInterval(() => {
-      channel.sendToQueue("welcome-email", Buffer.from("new message"));
-    }, 1000);
+    channel.sendToQueue("welcome-email", Buffer.from("new message"));
   } catch (error) {
     console.log(error);
   }

@@ -64,6 +64,7 @@ const resolvers = {
     getAllMessages: async (parent, args, context, info) => {
       try {
         const cache_data = await client.get("messages");
+        console.log("cache_data", cache_data);
         if (cache_data !== null) {
           const data = JSON.parse(cache_data);
           return data;
@@ -71,7 +72,7 @@ const resolvers = {
 
         const messagesArray = await Messagemodel.find();
         await client.set("messages", JSON.stringify(messagesArray));
-        await client.expire("messages", 30);
+        await client.expire("messages", 300);
 
         return messagesArray;
       } catch (err) {

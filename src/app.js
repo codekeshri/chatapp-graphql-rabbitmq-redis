@@ -1,4 +1,3 @@
-// import {ApolloServer} from "apollo-server-express";
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
@@ -52,15 +51,7 @@ async function main() {
 
 main();
 
-//initialize the socket aka connection event and give socket.id key to user
-const users = [];
-const parties = [
-  {votes: 0, label: "INC"},
-  {votes: 0, label: "BJP"},
-  {votes: 0, label: "AAP"},
-  {votes: 0, label: "RJD"},
-];
-
+// socket connections for chat messages
 io.on("connection", (socket) => {
   socket.on("user-joined", (username) => {
     socket.broadcast.emit("user-joined-broadcast", username);
@@ -69,12 +60,6 @@ io.on("connection", (socket) => {
   // send-message event and recieve-message broadcast
   socket.on("send-message", (message) => {
     socket.broadcast.emit("receive-message", message);
-  });
-
-  // emit the voting stats to all users
-  socket.on("vote", (index) => {
-    parties[index].votes += 1;
-    io.emit("update", index);
   });
 
   // listent to typing event and broadcast it
