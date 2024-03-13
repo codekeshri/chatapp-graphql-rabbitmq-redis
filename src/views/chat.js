@@ -19,7 +19,6 @@ socket.on("user-joined-broadcast", (username) => {
 
 //when user sends a message
 socket.on("receive-message", (data) => {
-  console.log("recieve-message event", data);
   feedback.innerHTML = "";
   displayMessage(data.name, data.message);
 });
@@ -134,36 +133,49 @@ async function getAllMessagesFromDB() {
 
 async function sendMessageToServer() {
   const messageinput = document.getElementById("messageinput");
-  const messageText = messageinput.value;
-  const message = {
-    message: messageText,
-    name: localStorage.getItem("username"),
-  };
+  const message = messageinput.value;
+  const sender = localStorage.getItem("username");
   if (!usertoken) return;
+  const data = {username, message};
+  socket.emit("send-message", data);
+  displayMessage("you", message);
+  socket.emit("send-notification", username);
+
   try {
-    socket.emit("send-message", message);
-    displayMessage("you", message.message);
-    socket.emit("send-notification", username);
-
-    const sendMessageMutation = `
-      mutation Send($message: String!, $sender: String!) {
-        send(message: $message, sender: $sender) {
-          message
-          sender
-        }
-      }
-        `;
-
-    const obj = {
-      mutation: sendMessageMutation,
-      variables: {message: messageText, sender: username},
+    const requestBody = {
+      query: `
+            mutation Send($message: String!, $sender: String!) {
+              send(message: $message, sender: $sender) {
+                message
+                sender
+              }
+            }
+          `,
+      variables: {
+        message,
+        sender,
+      },
     };
-    console.log(obj.variables);
-    const response = await axios.post("http://localhost:3000/graphql", obj);
-    console.log("response", response);
+
+    const response = await axios.post(
+      "http://localhost:3000/graphql",
+      requestBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (response.data.errors) {
+      throw new Error(response.data.errors[0].message);
+    }
+
+    console.log(response.data.data.send);
     messageinput.value = "";
-  } catch (err) {
-    console.log("unable to send", err);
+  } catch (error) {
+    console.error("Error sending message:", error.message);
+    throw error;
   }
 }
 
@@ -214,7 +226,6 @@ function displayMessage(sender, message) {
   deleteIcon.classList.add("fa-regular", "fa-trash-can", "delete-icon");
   deleteIcon.addEventListener("click", function () {
     messages.removeChild(messageContainer);
-    deleteMessage(sender, message);
   });
 
   editContainer.appendChild(editIcon);
